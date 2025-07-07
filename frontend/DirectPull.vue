@@ -11,7 +11,7 @@
       </el-form>
     </el-card>
     <el-dialog v-model="dialogVisible" title="实时日志" width="600px">
-      <pre style="white-space: pre-wrap; color:#222; background:#f7f7f7; min-height:200px;">{{ log }}</pre>
+      <pre style="white-space: pre-wrap; color:#222; background:#f7f7f7; min-height:200px;">{{ log || '正在执行操作，请稍候...\n' }}</pre>
       <template #footer>
         <el-button @click="dialogVisible = false">关闭</el-button>
       </template>
