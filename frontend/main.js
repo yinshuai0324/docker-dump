@@ -1,22 +1,10 @@
-import { createApp, h } from 'vue';
+import { createApp } from 'vue';
 import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
+import router from './router.js';
 import App from './App.vue';
-import Login from './Login.vue';
-import RegistryConfig from './RegistryConfig.vue';
 
-const token = localStorage.getItem('token');
-const url = new URL(window.location.href);
-const showConfig = url.searchParams.get('config') === '1';
-
-const Root = {
-  render() {
-    if (!token) return h(Login);
-    if (showConfig) return h(RegistryConfig);
-    return h(App);
-  }
-};
-
-const app = createApp(Root);
+const app = createApp(App);
 app.use(ElementPlus);
+app.use(router);
 app.mount('#app');

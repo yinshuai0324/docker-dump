@@ -1,112 +1,135 @@
 <template>
-  <el-container style="height: 100vh">
-    <el-header>
-      <h2>Docker 镜像管理</h2>
-      <div style="float:right; margin-top:-40px;">
-        <el-button @click="goConfig" style="margin-right: 10px;">私有仓库配置</el-button>
-        <el-button type="danger" @click="logout">退出登录</el-button>
-      </div>
-    </el-header>
-    <el-main>
-      <el-form :inline="true" @submit.prevent>
-        <el-form-item label="镜像搜索">
-          <el-input v-model="searchQuery" placeholder="输入镜像名" @keyup.enter="onSearch" style="width: 300px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="onSearch">搜索</el-button>
-        </el-form-item>
-      </el-form>
-      <el-table :data="images" v-loading="loading" style="margin-top: 20px">
-        <el-table-column prop="name" label="镜像名" />
-        <el-table-column label="操作">
-          <template #default="scope">
-            <el-button size="small" type="success" @click="pullAndPush(scope.row.name)">拉取并上传</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-dialog v-model="dialogVisible" title="操作结果" width="600px">
-        <pre style="white-space: pre-wrap">{{ dialogMsg }}</pre>
-        <template #footer>
-          <el-button @click="dialogVisible = false">关闭</el-button>
-        </template>
-      </el-dialog>
-    </el-main>
-  </el-container>
+  <div>
+    <el-container v-if="$route.name !== 'Login'" class="full-container">
+      <!-- 侧边栏 -->
+      <el-aside width="200px" class="sidebar">
+        <div class="logo-bar">Docker 管理</div>
+        <el-menu :default-active="$route.name" @select="onMenuSelect" class="el-menu-vertical-demo" router>
+          <el-menu-item index="Main">
+            <el-icon><i-ep-search /></el-icon>
+            <span>镜像搜索</span>
+          </el-menu-item>
+          <el-menu-item index="DirectPull">
+            <el-icon><i-ep-download /></el-icon>
+            <span>拉取镜像</span>
+          </el-menu-item>
+          <el-menu-item index="RegistryConfig">
+            <el-icon><i-ep-setting /></el-icon>
+            <span>仓库配置</span>
+          </el-menu-item>
+        </el-menu>
+      </el-aside>
+      <el-container>
+        <!-- 顶部栏 -->
+        <el-header class="header-bar">
+          <div class="header-title">Docker镜像转存管理系统</div>
+          <el-button type="danger" class="logout-btn" @click="logout">退出登录</el-button>
+        </el-header>
+        <!-- 内容区 -->
+        <el-main class="main-content">
+          <router-view />
+        </el-main>
+      </el-container>
+    </el-container>
+    <router-view v-else />
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import axios from 'axios';
+import { useRouter, useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { Search as IepSearch, Download as IepDownload, Setting as IepSetting } from '@element-plus/icons-vue';
 
-const searchQuery = ref('');
-const images = ref([]);
-const loading = ref(false);
-const dialogVisible = ref(false);
-const dialogMsg = ref('');
+const router = useRouter();
+const route = useRoute();
 
-function getRegistryConfig() {
-  return {
-    registry: localStorage.getItem('privateRegistry') || '',
-    username: localStorage.getItem('privateUser') || '',
-    password: localStorage.getItem('privatePass') || ''
-  };
-}
-
-const onSearch = async () => {
-  if (!searchQuery.value) return;
-  loading.value = true;
-  try {
-    const res = await axios.get('/api/search', { params: { q: searchQuery.value }, headers: authHeader() });
-    images.value = (res.data || []).map(i => ({ name: i.name || i.repo_name || i.repository || i.path }));
-  } catch (e) {
-    images.value = [];
-    if (e.response?.status === 401) window.location.reload();
-  }
-  loading.value = false;
+const onMenuSelect = (key) => {
+  router.push({ name: key });
 };
-
-const pullAndPush = async (image) => {
-  const { registry, username, password } = getRegistryConfig();
-  if (!registry) {
-    dialogMsg.value = '请先在“私有仓库配置”页面填写仓库信息';
-    dialogVisible.value = true;
-    return;
-  }
-  loading.value = true;
-  try {
-    const pullRes = await axios.post('/api/pull', { image }, { headers: authHeader() });
-    const pushRes = await axios.post('/api/push', {
-      image,
-      registry,
-      username,
-      password
-    }, { headers: authHeader() });
-    dialogMsg.value = `拉取结果:\n${pullRes.data.output}\n\n上传结果:\n${pushRes.data.output}`;
-  } catch (e) {
-    dialogMsg.value = e.response?.data?.error || e.message;
-    if (e.response?.status === 401) window.location.reload();
-  }
-  dialogVisible.value = true;
-  loading.value = false;
-};
-
-function authHeader() {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-function goConfig() {
-  window.location.href = '/?config=1';
-}
 
 function logout() {
   localStorage.removeItem('token');
-  window.location.href = '/';
+  ElMessage.success('已退出登录');
+  setTimeout(() => {
+    router.push('/login');
+  }, 500);
 }
 </script>
 
 <style>
-body {
+html, body {
+  height: 100%;
   margin: 0;
+  padding: 0;
+  background: #f5f7fa;
+  overflow: hidden;
+}
+#app {
+  height: 100vh;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+.full-container {
+  height: 100vh;
+  min-height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.sidebar {
+  background: #2d3a4b;
+  color: #fff;
+  min-height: 100vh;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+}
+.logo-bar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 2px;
+  background: #263445;
+  margin-bottom: 8px;
+}
+.el-menu-vertical-demo {
+  border-right: none;
+  background: transparent;
+}
+.el-menu-vertical-demo .el-menu-item {
+  color: #fff;
+  font-size: 16px;
+  height: 48px;
+  line-height: 48px;
+}
+.el-menu-vertical-demo .el-menu-item.is-active {
+  background: #409eff;
+  color: #fff;
+}
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  padding: 0 24px;
+  height: 60px;
+}
+.header-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: #222;
+}
+.logout-btn {
+  margin-left: auto;
+}
+.main-content {
+  background: #f5f7fa;
+  min-height: calc(100vh - 60px);
+  padding: 32px 24px;
+  box-sizing: border-box;
+  overflow: auto;
 }
 </style>
